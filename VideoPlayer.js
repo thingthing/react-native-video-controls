@@ -35,6 +35,9 @@ import playImage from './assets/img/play.png';
 import pauseImage from './assets/img/pause.png';
 import loaderIcon from './assets/img/loader-icon.png';
 import errorIcon from './assets/img/error-icon.png';
+import VolumeSlider from './VolumeSlider';
+
+export const VolumeSliderLayout = VolumeSlider;
 
 /**
  * This object houses our styles. There's player
@@ -175,32 +178,6 @@ const styles = {
       color: '#FFF',
       fontSize: 11,
       textAlign: 'right'
-    }
-  }),
-  volume: StyleSheet.create({
-    container: {
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      flexDirection: 'row',
-      height: 28,
-      marginLeft: 20,
-      marginRight: 20,
-      width: 150
-    },
-    track: {
-      backgroundColor: '#333',
-      height: 1,
-      marginLeft: 7
-    },
-    fill: {
-      backgroundColor: '#FFF',
-      height: 1
-    },
-    handle: {
-      position: 'absolute',
-      marginLeft: -17,
-      height: 28,
-      width: 28,
     }
   }),
   seekbar: StyleSheet.create({
@@ -373,14 +350,10 @@ export default class VideoPlayer extends Component {
 
       isFullscreen: resizeMode === 'cover' || false,
       showTimeRemaining: true,
-      volumeTrackWidth: 0,
       lastScreenPress: 0,
-      volumeFillWidth: 0,
       seekerFillWidth: 0,
       showControls: true,
-      volumePosition: 0,
       seekerPosition: 0,
-      volumeOffset: 0,
       seekerOffset: 0,
       seeking: false,
       loading: false,
@@ -428,7 +401,6 @@ export default class VideoPlayer extends Component {
      */
     this.player = {
       controlTimeoutDelay: controlTimeout,
-      volumePanResponder: PanResponder,
       seekPanResponder: PanResponder,
       controlTimeout: null,
       volumeWidth: 150,
@@ -630,27 +602,6 @@ export default class VideoPlayer extends Component {
       seekerFillWidth: positionTmp,
       seekerPosition: positionTmp,
       seekerOffset: state.seeking ? state.seekerOffset : positionTmp
-    }));
-  }
-
-  /**
-   * Set the position of the volume slider
-   *
-   * @param {float} position position of the volume handle in px
-   */
-  setVolumePosition(position = 0, changeOffset = false) {
-    const positionTmp = this.constrainToVolumeMinMax(position);
-    let volumeTrackWidth = this.player.volumeWidth - positionTmp;
-
-    if (volumeTrackWidth > 150) {
-      volumeTrackWidth = 150;
-    }
-    this.setState(state => ({
-      ...state,
-      volumePosition: positionTmp + this.player.iconOffset,
-      volumeFillWidth: positionTmp < 0 ? 0 : positionTmp,
-      volumeTrackWidth,
-      volumeOffset: changeOffset ? position : state.volumeOffset
     }));
   }
 
@@ -895,41 +846,6 @@ export default class VideoPlayer extends Component {
     }));
   }
 
-  /**
-   * Constrain the volume bar to the min/max of
-   * its track's width.
-   *
-   * @param {float} val position of the volume handle in px
-   * @return {float} contrained position of the volume handle in px
-   */
-  constrainToVolumeMinMax(val = 0) {
-    if (val <= 0) {
-      return 0;
-    } else if (val >= this.player.volumeWidth + 9) {
-      return this.player.volumeWidth + 9;
-    }
-    return val;
-  }
-
-  /**
-   * Get the volume based on the position of the
-   * volume object.
-   *
-   * @return {float} volume level based on volume handle position
-   */
-  calculateVolumeFromVolumePosition() {
-    return this.state.volumePosition / this.player.volumeWidth;
-  }
-
-  /**
-   * Get the position of the volume handle based
-   * on the volume
-   *
-   * @return {float} volume handle position in px based on volume
-   */
-  calculateVolumePositionFromVolume() {
-    return this.player.volumeWidth / this.state.volume;
-  }
 
   /**
     | -------------------------------------------------------
@@ -948,7 +864,6 @@ export default class VideoPlayer extends Component {
    */
   componentWillMount() {
     this.initSeekPanResponder();
-    this.initVolumePanResponder();
   }
 
   /**
@@ -962,15 +877,6 @@ export default class VideoPlayer extends Component {
         paused: nextProps.paused
       }));
     }
-  }
-
-  /**
-   * Upon mounting, calculate the position of the volume
-   * bar based on the volume property supplied to it.
-   */
-  componentDidMount() {
-    const position = this.calculateVolumePositionFromVolume();
-    this.setVolumePosition(position, true);
   }
 
   /**
@@ -1038,49 +944,6 @@ export default class VideoPlayer extends Component {
             seeking: false
           }));
         }
-      }
-    });
-  }
-
-  /**
-   * Initialize the volume pan responder.
-   */
-  initVolumePanResponder() {
-    this.player.volumePanResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        this.clearControlTimeout();
-      },
-
-      /**
-       * Update the volume as we change the position.
-       * If we go to 0 then turn on the mute prop
-       * to avoid that weird static-y sound.
-       */
-      onPanResponderMove: (evt, gestureState) => {
-        const { volumeOffset } = this.state;
-        const position = volumeOffset + gestureState.dx;
-
-        this.setVolumePosition(position);
-        const volume = this.calculateVolumeFromVolumePosition();
-
-        this.setState(state => ({
-          ...state,
-          volume,
-          muted: volume <= 0
-        }));
-      },
-
-      /**
-       * Update the offset...
-       */
-      onPanResponderRelease: () => {
-        this.setControlTimeout();
-        this.setState(state => ({
-          ...state,
-          volumeOffset: state.volumePosition
-        }));
       }
     });
   }
@@ -1184,25 +1047,21 @@ export default class VideoPlayer extends Component {
    */
   renderVolume() {
     return (
-      <View style={styles.volume.container}>
-        <View
-          style={[styles.volume.fill, { width: this.state.volumeFillWidth }]}
-        />
-        <View
-          style={[styles.volume.track, { width: this.state.volumeTrackWidth }]}
-        />
-        <View
-          style={[styles.volume.handle, { left: this.state.volumePosition }]}
-          {...this.player.volumePanResponder.panHandlers}
-        >
-          <View
-            style={[
-              styles.seekbar.circle,
-              { backgroundColor: this.props.seekColor }
-            ]}
-          />
-        </View>
-      </View>
+      <VolumeSlider
+        seekColor={this.props.seekColor}
+        setVolume={volume => {
+          this.setState(state => {
+            return {
+              ...state,
+              volume,
+              muted: volume <= 0
+            };
+          });
+        }}
+        volumeWidth={this.player.volumeWidth}
+        iconOffset={this.player.iconOffset}
+        volume={this.state.volume}
+      />
     );
   }
 
