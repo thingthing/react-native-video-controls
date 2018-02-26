@@ -1,0 +1,37 @@
+{
+  "extends": ["airbnb", "prettier"],
+  "rules": {
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [".js"]
+      }
+    ],
+    "arrow-body-style": 0,
+    "arrow-parens": ["error", "as-needed"],
+    "no-plusplus": 0,
+    "jsx-a11y/href-no-hash": "off",
+    "jsx-a11y/anchor-has-content": "off",
+    "react/jsx-boolean-value": "off",
+    "react/no-typos": "off",
+    "no-underscore-dangle": 1,
+    "no-restricted-syntax": 0,
+    "class-methods-use-this": 0,
+    "react/no-array-index-key": 1,
+    "anchor-has-content": 0,
+    "no-nested-ternary": 0
+  },
+  "globals": {
+    "fetch": true
+  },
+  "env": {
+    "jest": true
+  },
+  "parser": "babel-eslint",
+  "settings": {
+    "import/resolver": {
+      "babel-module": {},
+      "react-native": {}
+    }
+  }
+}
